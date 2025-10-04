@@ -1,115 +1,86 @@
 // public/sw.js
-const CACHE = "budget-nav-v2";
+const CACHE = "budget-nav-v3"; // ↑ увеличавай при промени
+const BASE = self.location.pathname.replace(/sw\.js$/, "");
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    (async () => {
-      const cache = await caches.open(CACHE);
-      await cache.addAll([
-        "/",                    // app shell
-        "/index.html",
-        "/manifest.webmanifest",
-        "/icons/icon-192.png",
-        "/icons/icon-512.png",
-      ]);
-    })()
-  );
-  self.skipWaiting();
+  event.waitUntil((async () => {
+    const c = await caches.open(CACHE);
+    await c.addAll([
+      `${BASE}`,
+      `${BASE}index.html`,
+      `${BASE}manifest.webmanifest`,
+      `${BASE}icons/icon-192.png`,
+      `${BASE}icons/icon-512.png`,
+    ]);
+  })());
+  self.skipWaiting(); // новият SW става "waiting" веднага
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    (async () => {
-      // чистим стари кешове
-      const keys = await caches.keys();
-      await Promise.all(keys.map((k) => (k === CACHE ? null : caches.delete(k))));
-      // navigation preload ускорение
-      if ("navigationPreload" in self.registration) {
-        await self.registration.navigationPreload.enable();
-      }
-      await self.clients.claim();
-    })()
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((k) => (k === CACHE ? null : caches.delete(k))));
+    if ("navigationPreload" in self.registration) {
+      await self.registration.navigationPreload.enable();
+    }
+    await self.clients.claim();
+  })());
 });
 
-// helper: stale-while-revalidate за статични активи
+// слушаме "SKIP_WAITING" от приложението (бутон „Обнови“)
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(CACHE);
   const cached = await cache.match(request);
   const fetchPromise = fetch(request)
-    .then((networkResp) => {
-      // кешираме успешните
-      if (networkResp && networkResp.status === 200) {
-        cache.put(request, networkResp.clone());
-      }
-      return networkResp;
-    })
+    .then((r) => { if (r && r.status === 200) cache.put(request, r.clone()); return r; })
     .catch(() => null);
   return cached || fetchPromise;
 }
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-
-  // само GET
   if (req.method !== "GET") return;
 
-  // 1) Навигации (SPA): network-first с fallback към кеширания index.html
   if (req.mode === "navigate") {
-    event.respondWith(
-      (async () => {
-        try {
-          // navigation preload > мрежа
-          const preload = await event.preloadResponse;
-          if (preload) return preload;
-          const netResp = await fetch(req);
-          return netResp;
-        } catch (err) {
-          // fallback към cached shell
-          const cache = await caches.open(CACHE);
-          const cachedShell = await cache.match("/index.html");
-          return cachedShell || Response.error();
-        }
-      })()
-    );
+    event.respondWith((async () => {
+      try {
+        const preload = await event.preloadResponse;
+        if (preload) return preload;
+        return await fetch(req);
+      } catch {
+        const cache = await caches.open(CACHE);
+        return (await cache.match(`${BASE}index.html`)) || Response.error();
+      }
+    })());
     return;
   }
 
-  // 2) Статични активи (js, css, шрифтове, изображения): stale-while-revalidate
   const url = new URL(req.url);
-  const isStatic =
-    url.pathname.startsWith("/assets/") ||
-    url.pathname.endsWith(".js") ||
-    url.pathname.endsWith(".css") ||
-    url.pathname.endsWith(".woff") ||
-    url.pathname.endsWith(".woff2") ||
-    url.pathname.endsWith(".ttf") ||
-    url.pathname.endsWith(".png") ||
-    url.pathname.endsWith(".svg") ||
-    url.pathname.endsWith(".jpg") ||
-    url.pathname.endsWith(".jpeg") ||
-    url.pathname.endsWith(".webp");
+  const isStatic = url.pathname.startsWith(`${BASE}assets/`) ||
+    [".js",".css",".woff",".woff2",".ttf",".png",".svg",".jpg",".jpeg",".webp"].some(ext => url.pathname.endsWith(ext));
 
   if (isStatic) {
     event.respondWith(staleWhileRevalidate(req));
     return;
   }
 
-  // 3) Всичко останало: network-first с fallback от кеша (ако имаме)
-  event.respondWith(
-    (async () => {
-      try {
-        const resp = await fetch(req);
-        // кеширай тихо успешни отговори
-        if (resp && resp.status === 200) {
-          const cache = await caches.open(CACHE);
-          cache.put(req, resp.clone());
-        }
-        return resp;
-      } catch {
-        const cached = await caches.match(req);
-        return cached || Response.error();
+  event.respondWith((async () => {
+    try {
+      const resp = await fetch(req);
+      if (resp && resp.status === 200) {
+        const cache = await caches.open(CACHE);
+        cache.put(req, resp.clone());
       }
-    })()
-  );
+      return resp;
+    } catch {
+      const cached = await caches.match(req);
+      return cached || Response.error();
+    }
+  })());
 });

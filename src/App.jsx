@@ -3,6 +3,27 @@ import { Download, Trash2, PlusCircle, Target, PieChart as PieIcon, BarChart2, A
 import Chart from "chart.js/auto";
 import * as XLSX from "xlsx"; // експорт към Excel
 
+// в началото на компонента
+const [swReg, setSwReg] = useState(null);
+const [updateReady, setUpdateReady] = useState(false);
+
+useEffect(() => {
+  const onSwUpdated = (e) => {
+    setSwReg(e.detail);     // registration
+    setUpdateReady(true);   // покажи банера
+  };
+  window.addEventListener("swUpdated", onSwUpdated);
+  return () => window.removeEventListener("swUpdated", onSwUpdated);
+}, []);
+
+const applyUpdateNow = () => {
+  if (swReg?.waiting) {
+    swReg.waiting.postMessage({ type: "SKIP_WAITING" });
+    // след секунди ще се изпълни controllerchange -> reload()
+  }
+};
+
+
 // ======= Pastel palette (light-only) =======
 const pastel = {
   bg: "#fafaf9",
@@ -321,6 +342,23 @@ export default function BudgetApp() {
             )}
           </div>
         </header>
+        
+         {updateReady && (
+        <div
+           className="mb-3 sm:mb-4 rounded-xl border px-3 py-2 flex items-center justify-between"
+           style={{ background: "#fff", borderColor: "#e7e5e4" }}
+         >
+          <span className="text-sm">Има нова версия на приложението.</span>
+         <button
+          onClick={applyUpdateNow}
+         className="rounded-lg px-3 py-1 text-sm font-medium border"
+         style={{ background: "#fafaf9" }}
+        >
+          Обнови
+        </button>
+      </div>
+     )}
+
 
         {/* Add Entry Card */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6">
