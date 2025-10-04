@@ -1,0 +1,27 @@
+# зависимости и билдове
+node_modules/
+dist/
+.eslintcache
+
+# локални файлове/системни
+.DS_Store
+Thumbs.db
+
+# логове
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# среди/конфигурации
+.env
+.env.local
+.env.*.local
+
+# IDE/редактори
+.vscode/
+.idea/
+*.swp
+
+# тестове/ковъридж (ако добавиш по-късно)
+coverage/
