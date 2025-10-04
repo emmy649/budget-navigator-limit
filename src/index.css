@@ -5,3 +5,38 @@
 /* Optional nicer font */
 :root { --app-bg: #fafaf9; }
 body { background: var(--app-bg); }
+
+html, body {
+  height: 100%;
+  background: #fafaf9;          /* да съвпада с темата */
+  overscroll-behavior-y: none;   /* спира pull-to-refresh/chain в повечето браузъри */
+}
+
+/* Контейнерът на app-а ти (външният <div className="min-h-screen">) може да получи този клас */
+.app-shell {
+  min-height: 100vh;
+  overscroll-behavior: contain;  /* локализира скрол-а вътре */
+}
+
+/* По-деликатни граници/сенки за картите, за да няма „черти“ */
+.card {
+  background: #ffffff;
+  border: 1px solid #e7e5e4;     /* stone-200, много лек */
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+/* По желание — нежни скролбар-и на десктоп */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #e7e5e4 transparent;
+}
+::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #e7e5e4;
+  border-radius: 6px;
+}
+

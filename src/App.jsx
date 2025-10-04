@@ -223,7 +223,7 @@ export default function BudgetApp() {
 
   // ======= Handlers =======
   function addEntry() {
-    const amountNum = Number(form.amount);
+    const amountNum = Number(String(form.amount).replace(",", "."));
     if (!form.description || !form.date || !isFinite(amountNum) || amountNum <= 0) return;
     const payload = { id: crypto.randomUUID(), date: form.date, type: form.type, description: form.description, amount: amountNum };
     if (form.type === "expense") {
@@ -299,7 +299,7 @@ export default function BudgetApp() {
 
   // ======= UI =======
   return (
-    <div className="min-h-screen" style={{ background: pastel.bg, color: pastel.text }}>
+   <div className="min-h-screen app-shell" style={{ background: pastel.bg, color: pastel.text }}>
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div>
