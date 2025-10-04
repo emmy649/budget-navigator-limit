@@ -3,27 +3,6 @@ import { Download, Trash2, PlusCircle, Target, PieChart as PieIcon, BarChart2, A
 import Chart from "chart.js/auto";
 import * as XLSX from "xlsx"; // експорт към Excel
 
-// в началото на компонента
-const [swReg, setSwReg] = useState(null);
-const [updateReady, setUpdateReady] = useState(false);
-
-useEffect(() => {
-  const onSwUpdated = (e) => {
-    setSwReg(e.detail);     // registration
-    setUpdateReady(true);   // покажи банера
-  };
-  window.addEventListener("swUpdated", onSwUpdated);
-  return () => window.removeEventListener("swUpdated", onSwUpdated);
-}, []);
-
-const applyUpdateNow = () => {
-  if (swReg?.waiting) {
-    swReg.waiting.postMessage({ type: "SKIP_WAITING" });
-    // след секунди ще се изпълни controllerchange -> reload()
-  }
-};
-
-
 // ======= Pastel palette (light-only) =======
 const pastel = {
   bg: "#fafaf9",
@@ -78,10 +57,27 @@ const DEFAULT_CATEGORIES = [
 ];
 
 export default function BudgetApp() {
+  // ======= PWA update banner (ВЪТРЕ В КОМПОНЕНТА) =======
+  const [swReg, setSwReg] = useState(null);
+  const [updateReady, setUpdateReady] = useState(false);
+  useEffect(() => {
+    const onSwUpdated = (e) => {
+      setSwReg(e.detail);     // registration
+      setUpdateReady(true);   // покажи банера
+    };
+    window.addEventListener("swUpdated", onSwUpdated);
+    return () => window.removeEventListener("swUpdated", onSwUpdated);
+  }, []);
+  const applyUpdateNow = () => {
+    if (swReg?.waiting) {
+      swReg.waiting.postMessage({ type: "SKIP_WAITING" });
+      // след това main.jsx слуша controllerchange и прави reload
+    }
+  };
+
   // ======= PWA install state =======
   const [installEvent, setInstallEvent] = useState(null);
   const [canInstall, setCanInstall] = useState(false);
-
   useEffect(() => {
     const onBeforeInstall = (e) => {
       e.preventDefault();
@@ -89,7 +85,6 @@ export default function BudgetApp() {
       setCanInstall(true);
     };
     const onAppInstalled = () => setCanInstall(false);
-
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
     window.addEventListener("appinstalled", onAppInstalled);
     return () => {
@@ -97,7 +92,6 @@ export default function BudgetApp() {
       window.removeEventListener("appinstalled", onAppInstalled);
     };
   }, []);
-
   const handleInstallClick = async () => {
     if (!installEvent) return;
     installEvent.prompt();
@@ -305,7 +299,7 @@ export default function BudgetApp() {
   }
 
   function setLimit(catKey, value) {
-    const v = Math.max(0, Number(value) || 0);
+    const v = Math.max(0, Number(String(value).replace(",", ".")) || 0);
     setSettings((s) => ({ ...s, limits: { ...(s.limits || {}), [catKey]: v } }));
   }
 
@@ -320,7 +314,7 @@ export default function BudgetApp() {
 
   // ======= UI =======
   return (
-   <div className="min-h-screen app-shell" style={{ background: pastel.bg, color: pastel.text }}>
+    <div className="min-h-screen app-shell" style={{ background: pastel.bg, color: pastel.text }}>
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div>
@@ -342,26 +336,25 @@ export default function BudgetApp() {
             )}
           </div>
         </header>
-        
-         {updateReady && (
-        <div
-           className="mb-3 sm:mb-4 rounded-xl border px-3 py-2 flex items-center justify-between"
-           style={{ background: "#fff", borderColor: "#e7e5e4" }}
-         >
-          <span className="text-sm">Има нова версия на приложението.</span>
-         <button
-          onClick={applyUpdateNow}
-         className="rounded-lg px-3 py-1 text-sm font-medium border"
-         style={{ background: "#fafaf9" }}
-        >
-          Обнови
-        </button>
-      </div>
-     )}
 
+        {updateReady && (
+          <div
+            className="mb-3 sm:mb-4 rounded-xl border px-3 py-2 flex items-center justify-between"
+            style={{ background: "#fff", borderColor: "#e7e5e4" }}
+          >
+            <span className="text-sm">Има нова версия на приложението.</span>
+            <button
+              onClick={applyUpdateNow}
+              className="rounded-lg px-3 py-1 text-sm font-medium border"
+              style={{ background: "#fafaf9" }}
+            >
+              Обнови
+            </button>
+          </div>
+        )}
 
         {/* Add Entry Card */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6">
+        <section className="grid grid-cols-1 md-grid-cols-3 md:grid-cols-3 gap-4 sm:gap-6 mb-6">
           <div className="rounded-2xl shadow-sm border p-4" style={{ background: pastel.card }}>
             <h2 className="font-semibold mb-3 flex items-center gap-2"><PlusCircle size={18}/>Ново движение</h2>
             <div className="grid grid-cols-2 gap-3 mb-3">
@@ -405,15 +398,15 @@ export default function BudgetApp() {
               <div className="col-span-2">
                 <label className="text-xs">Сума (лв.)</label>
                 <input
-                    type="text"
-                    inputMode="decimal"
-                    pattern="[0-9]*[.,]?[0-9]*"
-                    autoComplete="off"
-                    enterKeyHint="done"
-                    value={form.amount}
-                    onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                    className="w-full border rounded-xl px-3 py-2"
-               />
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9]*[.,]?[0-9]*"
+                  autoComplete="off"
+                  enterKeyHint="done"
+                  value={form.amount}
+                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                  className="w-full border rounded-xl px-3 py-2"
+                />
               </div>
             </div>
             <button onClick={addEntry} className="w-full rounded-xl px-4 py-2 font-medium" style={{ background: pastel.primary, color: pastel.primaryText }}>Запиши</button>
@@ -480,14 +473,14 @@ export default function BudgetApp() {
                       <span className="text-sm">{c.label}</span>
                       <div className="flex items-center gap-2">
                         <input
-                           type="text"
-                           inputMode="decimal"
-                           pattern="[0-9]*[.,]?[0-9]*"
-                           placeholder="0"
-                           value={settings.limits?.[c.key] ?? ""}
-                           onChange={(e) => setLimit(c.key, e.target.value)}
-                           className="w-24 sm:w-28 border rounded-xl px-2 py-1"
-                          />
+                          type="text"
+                          inputMode="decimal"
+                          pattern="[0-9]*[.,]?[0-9]*"
+                          placeholder="0"
+                          value={settings.limits?.[c.key] ?? ""}
+                          onChange={(e) => setLimit(c.key, e.target.value)}
+                          className="w-24 sm:w-28 border rounded-xl px-2 py-1"
+                        />
                         <span className="text-xs" style={{ color: pastel.subtext }}>лв.</span>
                       </div>
                     </div>
@@ -498,7 +491,7 @@ export default function BudgetApp() {
           </div>
         </section>
 
-        {/* Two-up row:   Limits status + Bar chart */}
+        {/* Two-up row: Limits status + Bar chart */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6">
           <div className="rounded-2xl shadow-sm border p-4" style={{ background: pastel.card }}>
             <h2 className="font-semibold mb-3">Състояние на лимитите ({monthLabel})</h2>
