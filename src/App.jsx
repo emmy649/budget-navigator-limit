@@ -366,7 +366,16 @@ export default function BudgetApp() {
               </div>
               <div className="col-span-2">
                 <label className="text-xs">Сума (лв.)</label>
-                <input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="w-full border rounded-xl px-3 py-2" />
+                <input
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*[.,]?[0-9]*"
+                    autoComplete="off"
+                    enterKeyHint="done"
+                    value={form.amount}
+                    onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                    className="w-full border rounded-xl px-3 py-2"
+               />
               </div>
             </div>
             <button onClick={addEntry} className="w-full rounded-xl px-4 py-2 font-medium" style={{ background: pastel.primary, color: pastel.primaryText }}>Запиши</button>
@@ -432,7 +441,15 @@ export default function BudgetApp() {
                     <div key={c.key} className="flex items-center justify-between gap-2">
                       <span className="text-sm">{c.label}</span>
                       <div className="flex items-center gap-2">
-                        <input type="number" step={0.01} placeholder="0" value={settings.limits?.[c.key] ?? ""} onChange={(e) => setLimit(c.key, e.target.value)} className="w-24 sm:w-28 border rounded-xl px-2 py-1" />
+                        <input
+                           type="text"
+                           inputMode="decimal"
+                           pattern="[0-9]*[.,]?[0-9]*"
+                           placeholder="0"
+                           value={settings.limits?.[c.key] ?? ""}
+                           onChange={(e) => setLimit(c.key, e.target.value)}
+                           className="w-24 sm:w-28 border rounded-xl px-2 py-1"
+                          />
                         <span className="text-xs" style={{ color: pastel.subtext }}>лв.</span>
                       </div>
                     </div>
@@ -443,7 +460,7 @@ export default function BudgetApp() {
           </div>
         </section>
 
-        {/* Two-up row: Limits status + Bar chart */}
+        {/* Two-up row:   Limits status + Bar chart */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6">
           <div className="rounded-2xl shadow-sm border p-4" style={{ background: pastel.card }}>
             <h2 className="font-semibold mb-3">Състояние на лимитите ({monthLabel})</h2>
